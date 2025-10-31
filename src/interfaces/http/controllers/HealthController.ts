@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import type { Logger } from 'winston';
 
 @injectable()
 export class HealthController {
-  constructor(private readonly logger: Logger) {}
+  constructor(@inject('Logger') private readonly logger: Logger) {}
 
   public liveness = (_req: Request, res: Response): void => {
     res.status(200).json({

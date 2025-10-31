@@ -1,4 +1,4 @@
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { OCRResult } from '@domain/entities/OCRResult.js';
 import { BankTransaction } from '@domain/entities/BankTransaction.js';
 import { TransactionValidation } from '@domain/entities/TransactionValidation.js';
@@ -23,7 +23,7 @@ const COLOMBIAN_BANKS = new Set([
 
 @injectable()
 export class ParseTransactionUseCase {
-  constructor(private readonly logger: Logger) {}
+  constructor(@inject('Logger') private readonly logger: Logger) {}
 
   public execute(ocrResult: OCRResult): {
     transaction: BankTransaction;

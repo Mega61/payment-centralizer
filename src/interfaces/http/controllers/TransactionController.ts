@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { AnnotateImageUseCase } from '@application/use-cases/AnnotateImageUseCase.js';
 import { validateAnnotateRequest } from '@application/dto/AnnotateRequest.js';
 import { ValidationError } from '@shared/errors/DomainErrors.js';
@@ -9,7 +9,7 @@ import type { Logger } from 'winston';
 export class TransactionController {
   constructor(
     private readonly annotateImageUseCase: AnnotateImageUseCase,
-    private readonly logger: Logger,
+    @inject('Logger') private readonly logger: Logger,
   ) {}
 
   public annotate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

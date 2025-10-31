@@ -1,5 +1,5 @@
 import { Storage } from '@google-cloud/storage';
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { StorageRepository } from '@domain/repositories/StorageRepository.js';
 import { ExternalServiceError, NotFoundError } from '@shared/errors/DomainErrors.js';
 import type { Logger } from 'winston';
@@ -8,7 +8,7 @@ import type { Logger } from 'winston';
 export class GoogleCloudStorageAdapter implements StorageRepository {
   private storage: Storage;
 
-  constructor(private readonly logger: Logger) {
+  constructor(@inject('Logger') private readonly logger: Logger) {
     this.storage = new Storage();
     this.logger.info('Google Cloud Storage client initialized');
   }

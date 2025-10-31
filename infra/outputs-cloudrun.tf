@@ -19,12 +19,12 @@ output "cloudrun_service_account" {
 
 output "gcs_input_bucket" {
   description = "GCS bucket for input images"
-  value       = module.storage.gcs_input.name
+  value       = module.storage.gcs_input
 }
 
 output "gcs_annotations_bucket" {
   description = "GCS bucket for annotations"
-  value       = module.storage.gcs_annotations.name
+  value       = module.storage.gcs_annotations
 }
 
 output "artifact_registry_repository" {

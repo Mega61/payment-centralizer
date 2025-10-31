@@ -97,14 +97,8 @@ resource "google_service_account" "cloudrun_sa" {
   project      = var.project_id
 }
 
-# Grant Vision API permissions
-resource "google_project_iam_member" "vision_user" {
-  count = var.service_account_email == "" ? 1 : 0
-
-  project = var.project_id
-  role    = "roles/cloudvision.user"
-  member  = "serviceAccount:${google_service_account.cloudrun_sa[0].email}"
-}
+# Note: Vision API access is granted automatically when the API is enabled
+# No specific IAM role is required for Cloud Vision API usage
 
 # Grant Storage permissions
 resource "google_project_iam_member" "storage_object_viewer" {

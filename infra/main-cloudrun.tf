@@ -92,8 +92,8 @@ module "cloudrun" {
     NODE_ENV                       = "production"
     LOG_LEVEL                      = var.cloudrun_log_level
     GCP_PROJECT_ID                 = var.project_id
-    GCS_BUCKET_NAME                = module.storage.gcs_input.name
-    GCS_ANNOTATIONS_BUCKET_NAME    = module.storage.gcs_annotations.name
+    GCS_BUCKET_NAME                = module.storage.gcs_input
+    GCS_ANNOTATIONS_BUCKET_NAME    = module.storage.gcs_annotations
     VISION_API_FEATURES            = join(",", var.cloudrun_vision_features)
     ENABLE_TRACING                 = "true"
     ENABLE_METRICS                 = "true"
@@ -102,7 +102,7 @@ module "cloudrun" {
   }
 
   allow_unauthenticated = !var.cloudrun_require_authentication
-  depends_on_apis       = module.project-services.project_id
+  depends_on_apis       = [module.project-services.project_id]
 }
 
 # Eventarc trigger for GCS bucket events -> Cloud Run
@@ -124,7 +124,7 @@ resource "google_eventarc_trigger" "gcs_trigger" {
 
   matching_criteria {
     attribute = "bucket"
-    value     = module.storage.gcs_input.name
+    value     = module.storage.gcs_input
   }
 
   destination {

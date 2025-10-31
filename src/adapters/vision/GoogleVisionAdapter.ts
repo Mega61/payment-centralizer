@@ -1,5 +1,5 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { VisionRepository } from '@domain/repositories/VisionRepository.js';
 import { OCRResult } from '@domain/entities/OCRResult.js';
 import { VisionFeature } from '@shared/types/index.js';
@@ -10,7 +10,7 @@ import type { Logger } from 'winston';
 export class GoogleVisionAdapter implements VisionRepository {
   private client: ImageAnnotatorClient;
 
-  constructor(private readonly logger: Logger) {
+  constructor(@inject('Logger') private readonly logger: Logger) {
     this.client = new ImageAnnotatorClient();
     this.logger.info('Google Vision API client initialized');
   }
