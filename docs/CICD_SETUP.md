@@ -243,7 +243,8 @@ curl -H "Authorization: Bearer ${TOKEN}" \
 1. **Wait for manual approval** (production environment)
 2. Update Cloud Run service with new image
 3. Verify health check
-4. Apply Terraform changes if needed
+
+**Note:** Infrastructure changes are managed separately via Terraform CLI, not in the deployment pipeline.
 
 ### Terraform Validation (`terraform.yml`)
 **Triggers on:**

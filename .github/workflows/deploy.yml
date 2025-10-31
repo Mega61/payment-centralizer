@@ -101,26 +101,6 @@ jobs:
             echo "Note: This might be expected if the service requires authentication"
           fi
 
-      - name: Apply Terraform changes (if any)
-        working-directory: infra
-        run: |
-          # Initialize terraform with backend
-          terraform init
-
-          # Check if there are any changes
-          terraform plan -detailed-exitcode -out=tfplan || EXIT_CODE=$?
-
-          if [ "$EXIT_CODE" == "2" ]; then
-            echo "📝 Terraform changes detected, applying..."
-            terraform apply -auto-approve tfplan
-            echo "✅ Terraform changes applied"
-          elif [ "$EXIT_CODE" == "0" ]; then
-            echo "✅ No Terraform changes needed"
-          else
-            echo "❌ Terraform plan failed"
-            exit 1
-          fi
-
       - name: Deployment summary
         run: |
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY

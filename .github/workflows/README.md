@@ -50,9 +50,10 @@ This directory contains the CI/CD workflows for the Payment Centralizer applicat
 1. Wait for manual approval from designated reviewers
 2. Update Cloud Run service with new container image
 3. Verify health check passes
-4. Apply any Terraform infrastructure changes
 
 **Approval Required:** ✅ Yes - protects production from accidental deployments
+
+**Note:** Infrastructure changes are managed separately via Terraform CLI, not in the deployment workflow.
 
 ---
 
@@ -182,6 +183,23 @@ To rollback to a previous version:
 1. Find the previous version in Artifact Registry
 2. Manually trigger deploy workflow with the previous version tag
 3. Approve the rollback deployment
+
+## Managing Infrastructure Changes
+
+Infrastructure is managed separately from application deployments using Terraform CLI:
+
+```bash
+# Make changes to Terraform files in infra/
+cd infra
+
+# Review changes
+terraform plan
+
+# Apply after review
+terraform apply
+```
+
+**Note:** The `terraform.yml` workflow validates infrastructure changes in PRs but does NOT automatically apply them. This ensures infrastructure changes are deliberate and reviewed.
 
 ## Troubleshooting
 
