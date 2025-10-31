@@ -15,7 +15,11 @@ export class TransactionValidation {
     this.errors = errors;
   }
 
-  public static create(isValid: boolean, warnings: string[], errors: string[]): TransactionValidation {
+  public static create(
+    isValid: boolean,
+    warnings: string[],
+    errors: string[],
+  ): TransactionValidation {
     return new TransactionValidation(isValid, warnings, errors);
   }
 

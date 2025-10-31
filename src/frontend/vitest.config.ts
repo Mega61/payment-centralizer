@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-import react from '@vitejs/plugin-react'
-import tsconfigPaths from "vite-tsconfig-paths";
+import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
 import type { UserConfig as VitestUserConfigInterface } from 'vitest/config';
 
 const config: VitestUserConfigInterface = {
-    plugins: [react(), tsconfigPaths()],
-    test: {
-        globals: true,
-        environment: 'jsdom',
-        coverage: {
-            include: ['src/**/*'],
-            exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/tests'],
-            all: true,
-        }
+  plugins: [react(), tsconfigPaths()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    coverage: {
+      include: ['src/**/*'],
+      exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/tests'],
+      all: true,
     },
-}
+  },
+};
 
-export default config
-
+export default config;

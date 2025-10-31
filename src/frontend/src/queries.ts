@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import axios from "axios";
+import axios from 'axios';
 
 const client = axios.create({ baseURL: import.meta.env.VITE_API_SERVER });
 
@@ -112,37 +112,37 @@ export interface ImageAnnotationResult {
 }
 
 const ALL_TYPES =
-  "CROP_HINTS,DOCUMENT_TEXT_DETECTION,FACE_DETECTION,IMAGE_PROPERTIES,LABEL_DETECTION,LANDMARK_DETECTION,LOGO_DETECTION,OBJECT_LOCALIZATION,PRODUCT_SEARCH,SAFE_SEARCH_DETECTION,TEXT_DETECTION,TYPE_UNSPECIFIED,WEB_DETECTION";
+  'CROP_HINTS,DOCUMENT_TEXT_DETECTION,FACE_DETECTION,IMAGE_PROPERTIES,LABEL_DETECTION,LANDMARK_DETECTION,LOGO_DETECTION,OBJECT_LOCALIZATION,PRODUCT_SEARCH,SAFE_SEARCH_DETECTION,TEXT_DETECTION,TYPE_UNSPECIFIED,WEB_DETECTION';
 
 const LIMITED_TYPES =
-  "FACE_DETECTION,IMAGE_PROPERTIES,LABEL_DETECTION,OBJECT_LOCALIZATION,SAFE_SEARCH_DETECTION";
+  'FACE_DETECTION,IMAGE_PROPERTIES,LABEL_DETECTION,OBJECT_LOCALIZATION,SAFE_SEARCH_DETECTION';
 
 export async function annotateImageByFile(
   file: File,
-  features: string[]
+  features: string[],
 ): Promise<ImageAnnotationResult> {
   const formData = new FormData();
-  formData.append("image", file);
-  formData.append("features", features.join(","));
+  formData.append('image', file);
+  formData.append('features', features.join(','));
   return client
-    .post<ImageAnnotationResult>("/annotate", formData)
+    .post<ImageAnnotationResult>('/annotate', formData)
     .then((response) => response.data);
 }
 
 export async function annotateImageByUri(
   imageUri: string,
-  features: string[]
+  features: string[],
 ): Promise<ImageAnnotationResult> {
   const formData = new FormData();
-  formData.append("image_uri", imageUri);
-  formData.append("features", features.join(","));
+  formData.append('image_uri', imageUri);
+  formData.append('features', features.join(','));
   return client
-    .post<ImageAnnotationResult>("/annotate", formData)
+    .post<ImageAnnotationResult>('/annotate', formData)
     .then((response) => response.data);
 }
 
 export async function annotateImageByCloudImageInfo(
-  info: CloudImageInfo
+  info: CloudImageInfo,
 ): Promise<ImageAnnotationResult> {
   const annotation = info.annotation;
 
@@ -153,7 +153,7 @@ export async function annotateImageByCloudImageInfo(
       })
       .then((response) => response.data);
   } else {
-    throw Error("No annotation exists for this image");
+    throw Error('No annotation exists for this image');
   }
 }
 
@@ -165,12 +165,9 @@ export interface CloudImageInfo {
   annotation?: string;
 }
 
-export async function getImageInfo(
-  start?: number,
-  end?: number
-): Promise<CloudImageInfo[]> {
+export async function getImageInfo(start?: number, end?: number): Promise<CloudImageInfo[]> {
   return client
-    .get<ListInfoDictionary>("/bucket/list", {
+    .get<ListInfoDictionary>('/bucket/list', {
       params: { start, end },
     })
     .then((response) => response.data)
@@ -180,7 +177,7 @@ export async function getImageInfo(
           ...value,
           imageId: key,
         };
-      })
+      }),
     );
 }
 

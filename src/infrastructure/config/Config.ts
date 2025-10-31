@@ -21,15 +21,24 @@ const configSchema = z.object({
     .transform((val) => val.split(',')),
 
   // OpenTelemetry configuration
-  ENABLE_TRACING: z.string().default('true').transform((val) => val === 'true'),
-  ENABLE_METRICS: z.string().default('true').transform((val) => val === 'true'),
+  ENABLE_TRACING: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
+  ENABLE_METRICS: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
   OTLP_ENDPOINT: z.string().optional(),
 
   // Security configuration
   CORS_ORIGIN: z.string().default('*'),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000').transform(Number), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100').transform(Number),
-  REQUIRE_AUTHENTICATION: z.string().default('false').transform((val) => val === 'true'),
+  REQUIRE_AUTHENTICATION: z
+    .string()
+    .default('false')
+    .transform((val) => val === 'true'),
 });
 
 export type Config = z.infer<typeof configSchema>;

@@ -42,7 +42,8 @@ export const createLogger = (serviceName: string, logLevel: string): winston.Log
           winston.format.printf(
             ({ timestamp, level, message, service, traceId, spanId, ...meta }) => {
               const traceInfo = traceId ? ` [trace:${traceId} span:${spanId}]` : '';
-              const metaStr = Object.keys(meta).length > 0 ? `\n${JSON.stringify(meta, null, 2)}` : '';
+              const metaStr =
+                Object.keys(meta).length > 0 ? `\n${JSON.stringify(meta, null, 2)}` : '';
               return `${timestamp} [${service}] ${level}: ${message}${traceInfo}${metaStr}`;
             },
           ),

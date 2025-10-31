@@ -165,11 +165,6 @@ curl -X POST https://your-service-url/api/v1/transactions/annotate \
 **Response**:
 ```json
 {
-  "ocrResult": {
-    "id": "ocr_...",
-    "imageUri": "gs://bucket/transaction.jpg",
-    "features": ["TEXT_DETECTION", "DOCUMENT_TEXT_DETECTION"]
-  },
   "transaction": {
     "id": "txn_...",
     "amounts": [
@@ -196,6 +191,8 @@ curl -X POST https://your-service-url/api/v1/transactions/annotate \
   }
 }
 ```
+
+**Note**: The full OCR result from Google Vision API is logged server-side for debugging and audit purposes, and is also saved to the GCS annotations bucket (`vision-annotations-*`) for archival.
 
 ## Development
 

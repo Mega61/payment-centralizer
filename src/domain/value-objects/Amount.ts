@@ -20,7 +20,10 @@ export class Amount {
     switch (currency) {
       case Currency.COP:
         // Colombian format: period for thousands, comma for decimals
-        return `COP ${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, '.').replace('.', ',')}`;
+        return `COP ${value
+          .toFixed(2)
+          .replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+          .replace('.', ',')}`;
       case Currency.USD:
         // US format: comma for thousands, period for decimals
         return `USD ${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;

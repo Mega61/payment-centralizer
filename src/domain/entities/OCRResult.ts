@@ -40,7 +40,9 @@ export class OCRResult {
   }
 
   public extractFullText(): string {
-    const textAnnotations = this.annotations.textAnnotations as Array<{ description?: string | null }> | undefined;
+    const textAnnotations = this.annotations.textAnnotations as
+      | Array<{ description?: string | null }>
+      | undefined;
     if (textAnnotations && textAnnotations.length > 0) {
       return textAnnotations[0]?.description ?? '';
     }
@@ -48,7 +50,9 @@ export class OCRResult {
   }
 
   public extractLogos(): string[] {
-    const logoAnnotations = this.annotations.logoAnnotations as Array<{ description?: string | null }> | undefined;
+    const logoAnnotations = this.annotations.logoAnnotations as
+      | Array<{ description?: string | null }>
+      | undefined;
     if (!logoAnnotations) {
       return [];
     }
@@ -56,11 +60,16 @@ export class OCRResult {
   }
 
   public extractLabels(limit = 5): string[] {
-    const labelAnnotations = this.annotations.labelAnnotations as Array<{ description?: string | null }> | undefined;
+    const labelAnnotations = this.annotations.labelAnnotations as
+      | Array<{ description?: string | null }>
+      | undefined;
     if (!labelAnnotations) {
       return [];
     }
-    return labelAnnotations.slice(0, limit).map((label) => label.description ?? '').filter((desc) => desc !== '');
+    return labelAnnotations
+      .slice(0, limit)
+      .map((label) => label.description ?? '')
+      .filter((desc) => desc !== '');
   }
 
   public toJSON(): Record<string, unknown> {

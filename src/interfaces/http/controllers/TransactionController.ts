@@ -38,14 +38,15 @@ export class TransactionController {
         throw new ValidationError('Either imageUri or imageBase64 must be provided');
       }
 
+      // Log the complete OCR result for debugging and audit purposes
       this.logger.info('Annotation completed successfully', {
         transactionId: result.transaction.id,
         ocrResultId: result.ocrResult.id,
         isValid: result.validation.isValid,
+        ocrResult: result.ocrResult.toJSON(), // Full OCR data logged but not returned in API response
       });
 
       res.status(200).json({
-        ocrResult: result.ocrResult.toJSON(),
         transaction: result.transaction.toJSON(),
         validation: result.validation.toJSON(),
       });
