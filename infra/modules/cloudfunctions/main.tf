@@ -27,7 +27,7 @@ data "google_project" "project" {}
 # Create a fresh archive of the current function folder in a local temp folder
 data "archive_file" "functions" {
   type        = "zip"
-  output_path = "${local.functions_temp_folder}/${local.functions_file_prefix}_${timestamp()}.${local.zip_ext}" # create ZIP file with code in the local folder
+  output_path = "${local.functions_temp_folder}/${local.functions_file_prefix}.${local.zip_ext}" # create ZIP file with code in the local folder (timestamp removed for Windows compatibility)
   source_dir  = local.functions_src_folder
 }
 
@@ -56,27 +56,130 @@ resource "google_service_account" "gcf_sa" {
   display_name = "Service Account - for cloud function and eventarc trigger."
 }
 
-# set all roles for GCF service account in one resource
-resource "google_project_iam_member" "gcf_sa_roles" {
-  for_each = toset([
-    "roles/cloudfunctions.invoker",
-    "roles/run.invoker",             # eventarc trigger
-    "roles/eventarc.eventReceiver",  # receive events
-    "roles/storage.objectAdmin",     # R/W objects into GCS
-    "roles/logging.logWriter",       # logging
-    "roles/artifactregistry.reader", # function deployment
-  ])
-  role   = each.key
-  member = "serviceAccount:${google_service_account.gcf_sa.email}"
-  # member = "serviceAccount:${local.gcf_default_sa}"
+# set all roles for GCF service account - individual resources to avoid state lock contention
+resource "google_project_iam_member" "gcf_sa_cloudfunctions_invoker" {
+  role    = "roles/cloudfunctions.invoker"
+  member  = "serviceAccount:${google_service_account.gcf_sa.email}"
   project = data.google_project.project.id
+}
+
+resource "google_project_iam_member" "gcf_sa_run_invoker" {
+  role    = "roles/run.invoker" # eventarc trigger
+  member  = "serviceAccount:${google_service_account.gcf_sa.email}"
+  project = data.google_project.project.id
+}
+
+resource "google_project_iam_member" "gcf_sa_eventarc_receiver" {
+  role    = "roles/eventarc.eventReceiver" # receive events
+  member  = "serviceAccount:${google_service_account.gcf_sa.email}"
+  project = data.google_project.project.id
+}
+
+resource "google_project_iam_member" "gcf_sa_storage_admin" {
+  role    = "roles/storage.objectAdmin" # R/W objects into GCS
+  member  = "serviceAccount:${google_service_account.gcf_sa.email}"
+  project = data.google_project.project.id
+}
+
+resource "google_project_iam_member" "gcf_sa_logging_writer" {
+  role    = "roles/logging.logWriter" # logging
+  member  = "serviceAccount:${google_service_account.gcf_sa.email}"
+  project = data.google_project.project.id
+}
+
+resource "google_project_iam_member" "gcf_sa_artifact_reader" {
+  role    = "roles/artifactregistry.reader" # function deployment
+  member  = "serviceAccount:${google_service_account.gcf_sa.email}"
+  project = data.google_project.project.id
+}
+
+# Cloud Build Service Account IAM roles
+# The Cloud Build service account is used to build Cloud Functions Gen 2 container images
+# Required permissions added due to GCP policy changes that no longer grant these automatically
+resource "google_project_iam_member" "cloudbuild_sa_bucket_writer" {
+  role    = "roles/logging.bucketWriter"
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  project = data.google_project.project.id
+}
+
+resource "google_project_iam_member" "cloudbuild_sa_storage_viewer" {
+  role    = "roles/storage.objectViewer"
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  project = data.google_project.project.id
+}
+
+resource "google_project_iam_member" "cloudbuild_sa_artifactregistry_writer" {
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  project = data.google_project.project.id
+}
+
+# Grant Cloud Build service account permission to act as (impersonate) the GCF service account
+# This is CRITICAL for Cloud Functions Gen 2 deployment
+# Cloud Build needs this to deploy the function with the specified service account
+# Without this: "Could not build the function due to a missing permission on the build service account"
+# Reference: https://cloud.google.com/functions/docs/securing/function-identity#build-time_service_accounts
+resource "google_service_account_iam_member" "cloudbuild_acts_as_gcf_sa" {
+  service_account_id = google_service_account.gcf_sa.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${data.google_project.project.number}@cloudbuild.gserviceaccount.com"
+  depends_on         = [google_service_account.gcf_sa]
+}
+
+# Compute Engine Default Service Account IAM roles
+# Cloud Functions Gen 2 defaults to using the Compute Engine SA for builds when build_config.service_account is not specified
+# This is needed because the Terraform provider version doesn't support the service_account parameter in build_config yet
+resource "google_project_iam_member" "compute_sa_bucket_writer" {
+  role    = "roles/logging.bucketWriter"
+  member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+  project = data.google_project.project.id
+}
+
+resource "google_project_iam_member" "compute_sa_storage_viewer" {
+  role    = "roles/storage.objectViewer"
+  member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+  project = data.google_project.project.id
+}
+
+resource "google_project_iam_member" "compute_sa_artifactregistry_writer" {
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+  project = data.google_project.project.id
+}
+
+resource "google_service_account_iam_member" "compute_sa_acts_as_gcf_sa" {
+  service_account_id = google_service_account.gcf_sa.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+  depends_on         = [google_service_account.gcf_sa]
 }
 
 resource "time_sleep" "some_time_after_gcf_sa_roles" {
   depends_on = [
-    google_project_iam_member.gcf_sa_roles
+    google_project_iam_member.gcf_sa_cloudfunctions_invoker,
+    google_project_iam_member.gcf_sa_run_invoker,
+    google_project_iam_member.gcf_sa_eventarc_receiver,
+    google_project_iam_member.gcf_sa_storage_admin,
+    google_project_iam_member.gcf_sa_logging_writer,
+    google_project_iam_member.gcf_sa_artifact_reader,
   ]
-  create_duration = "30s" # This might not be enough.
+  create_duration = "90s" # Increased from 30s to allow proper IAM propagation
+}
+
+# Wait for Cloud Build service account permissions to propagate
+# Includes both Cloud Build SA and Compute Engine SA (which is actually used for builds)
+resource "time_sleep" "wait_for_cloudbuild_sa_roles" {
+  depends_on = [
+    google_project_iam_member.cloudbuild_sa_bucket_writer,
+    google_project_iam_member.cloudbuild_sa_storage_viewer,
+    google_project_iam_member.cloudbuild_sa_artifactregistry_writer,
+    google_service_account_iam_member.cloudbuild_acts_as_gcf_sa,
+    google_project_iam_member.compute_sa_bucket_writer,
+    google_project_iam_member.compute_sa_storage_viewer,
+    google_project_iam_member.compute_sa_artifactregistry_writer,
+    google_service_account_iam_member.compute_sa_acts_as_gcf_sa,
+  ]
+  create_duration = "90s"
 }
 
 # -------- Vision annotation GCF accessible from the internet or internally only --------------
@@ -90,6 +193,7 @@ resource "google_cloudfunctions2_function" "annotate_http" {
   depends_on = [
     google_storage_bucket_object.gcf_code,
     time_sleep.some_time_after_gcf_sa_roles,
+    time_sleep.wait_for_cloudbuild_sa_roles,
   ]
   build_config {
     runtime     = "python311"
@@ -120,15 +224,16 @@ resource "google_cloudfunctions2_function" "annotate_http" {
 }
 
 # Allow unauthenticated access
-# update the service IAM binding for roles/run.invoker, add the following resource referencing your Cloud Run service
+# update the service IAM member for roles/run.invoker, add the following resource referencing your Cloud Run service
 # https://cloud.google.com/run/docs/authenticating/public#terraform
-resource "google_cloud_run_service_iam_binding" "annotate_http" {
-  count    = var.gcf_require_http_authentication ? 0 : 1 # require authenticated access/unauthenticated
+# Changed from iam_binding to iam_member to avoid replacing entire role bindings
+resource "google_cloud_run_service_iam_member" "annotate_http" {
+  for_each = var.gcf_require_http_authentication ? toset([]) : toset(var.gcr_invoker_members)
   project  = google_cloudfunctions2_function.annotate_http.project
   location = google_cloudfunctions2_function.annotate_http.location
   service  = google_cloudfunctions2_function.annotate_http.name
   role     = var.gcr_role_invoker
-  members  = var.gcr_invoker_members
+  member   = each.value
 }
 
 
@@ -142,9 +247,10 @@ data "google_storage_project_service_account" "gcs_account" {
 # To use GCS CloudEvent triggers, the GCS service account requires the Pub/Sub Publisher(roles/pubsub.publisher) IAM role in the specified project.
 # (See https://cloud.google.com/eventarc/docs/run/quickstart-storage#before-you-begin)
 resource "google_project_iam_member" "gcs_pubsub_publishing" {
-  project = data.google_project.project.id
-  role    = "roles/pubsub.publisher"
-  member  = "serviceAccount:${data.google_storage_project_service_account.gcs_account.email_address}"
+  depends_on = [data.google_storage_project_service_account.gcs_account]
+  project    = data.google_project.project.id
+  role       = "roles/pubsub.publisher"
+  member     = "serviceAccount:${data.google_storage_project_service_account.gcs_account.email_address}"
 }
 
 
@@ -153,7 +259,8 @@ resource "google_cloudfunctions2_function" "annotate_gcs" {
   depends_on = [
     google_storage_bucket_object.gcf_code,
     time_sleep.some_time_after_gcf_sa_roles,
-    data.google_storage_project_service_account.gcs_account
+    data.google_storage_project_service_account.gcs_account,
+    time_sleep.wait_for_cloudbuild_sa_roles,
   ]
   name        = "annotate_gcs"
   labels      = var.labels

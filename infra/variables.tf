@@ -32,7 +32,7 @@ variable "enable_apis" {
 variable "time_to_enable_apis" {
   description = "Time to enable APIs, approximate estimate is 5 minutes, can be more."
   type        = string
-  default     = "30s"
+  default     = "90s"
 }
 
 variable "region" {
