@@ -1,0 +1,29 @@
+export enum TransactionType {
+  PURCHASE = 'PURCHASE',
+  WIRE_TRANSFER = 'WIRE_TRANSFER',
+  WITHDRAWAL = 'WITHDRAWAL',
+  DEPOSIT = 'DEPOSIT',
+  PAYMENT = 'PAYMENT',
+  ACH_TRANSFER = 'ACH_TRANSFER',
+  UNKNOWN = 'UNKNOWN',
+}
+
+export enum Currency {
+  COP = 'COP',
+  USD = 'USD',
+  UNKNOWN = 'UNKNOWN',
+}
+
+export enum CardType {
+  CREDIT = 'Credit Card',
+  DEBIT = 'Debit Card',
+  UNKNOWN = 'Unknown',
+}
+
+export enum VisionFeature {
+  TEXT_DETECTION = 'TEXT_DETECTION',
+  DOCUMENT_TEXT_DETECTION = 'DOCUMENT_TEXT_DETECTION',
+  LOGO_DETECTION = 'LOGO_DETECTION',
+  LABEL_DETECTION = 'LABEL_DETECTION',
+  SAFE_SEARCH_DETECTION = 'SAFE_SEARCH_DETECTION',
+}
