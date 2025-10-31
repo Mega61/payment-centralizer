@@ -38,6 +38,12 @@ terraform {
       version = "~> 0.12.0"
     }
   }
+
+  # Remote state backend using GCS
+  backend "gcs" {
+    bucket = "andante-payment-centralizer-tfstate"
+    prefix = "terraform/state"
+  }
 }
 
 provider "google" {

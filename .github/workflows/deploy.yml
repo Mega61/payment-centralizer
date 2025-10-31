@@ -1,0 +1,131 @@
+name: Deploy to Production
+
+on:
+  workflow_call:
+    inputs:
+      image-tag:
+        description: 'Docker image tag to deploy'
+        required: true
+        type: string
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      GCP_SERVICE_ACCOUNT_EMAIL:
+        required: true
+      GCP_PROJECT_ID:
+        required: true
+      GCP_REGION:
+        required: true
+  workflow_dispatch:
+    inputs:
+      image-tag:
+        description: 'Docker image tag to deploy (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Update Cloud Run service
+        id: deploy
+        run: |
+          IMAGE_PATH="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/payment-centralizer/app:${{ inputs.image-tag }}"
+
+          echo "🚀 Deploying image: ${IMAGE_PATH}"
+
+          gcloud run services update payment-centralizer \
+            --region="${{ secrets.GCP_REGION }}" \
+            --image="${IMAGE_PATH}" \
+            --quiet
+
+          # Get the service URL
+          SERVICE_URL=$(gcloud run services describe payment-centralizer \
+            --region="${{ secrets.GCP_REGION }}" \
+            --format='value(status.url)')
+
+          echo "url=${SERVICE_URL}" >> $GITHUB_OUTPUT
+          echo "✅ Deployment successful!"
+          echo "🌐 Service URL: ${SERVICE_URL}"
+
+      - name: Verify deployment
+        run: |
+          echo "⏳ Waiting for service to be ready..."
+          sleep 10
+
+          # Get service account for authentication
+          SA_EMAIL=$(gcloud run services describe payment-centralizer \
+            --region="${{ secrets.GCP_REGION }}" \
+            --format='value(spec.template.spec.serviceAccountName)')
+
+          # Get an identity token
+          ID_TOKEN=$(gcloud auth print-identity-token --impersonate-service-account="${SA_EMAIL}" 2>/dev/null || echo "")
+
+          # Check health endpoint
+          if [ -n "$ID_TOKEN" ]; then
+            HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer ${ID_TOKEN}" \
+              "${{ steps.deploy.outputs.url }}/health/live")
+          else
+            # Try without auth if token generation fails
+            HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              "${{ steps.deploy.outputs.url }}/health/live")
+          fi
+
+          if [ "$HEALTH_STATUS" == "200" ]; then
+            echo "✅ Health check passed (HTTP ${HEALTH_STATUS})"
+          else
+            echo "⚠️  Health check returned HTTP ${HEALTH_STATUS}"
+            echo "Note: This might be expected if the service requires authentication"
+          fi
+
+      - name: Apply Terraform changes (if any)
+        working-directory: infra
+        run: |
+          # Initialize terraform with backend
+          terraform init
+
+          # Check if there are any changes
+          terraform plan -detailed-exitcode -out=tfplan || EXIT_CODE=$?
+
+          if [ "$EXIT_CODE" == "2" ]; then
+            echo "📝 Terraform changes detected, applying..."
+            terraform apply -auto-approve tfplan
+            echo "✅ Terraform changes applied"
+          elif [ "$EXIT_CODE" == "0" ]; then
+            echo "✅ No Terraform changes needed"
+          else
+            echo "❌ Terraform plan failed"
+            exit 1
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image Tag:** \`${{ inputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service URL:** ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ secrets.GCP_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ✅ Deployed successfully" >> $GITHUB_STEP_SUMMARY

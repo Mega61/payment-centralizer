@@ -102,3 +102,9 @@ variable "cloudrun_require_authentication" {
   type        = bool
   default     = false
 }
+
+# CI/CD Configuration
+variable "github_repository" {
+  description = "GitHub repository in the format 'owner/repo' for Workload Identity Federation"
+  type        = string
+}

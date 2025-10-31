@@ -40,3 +40,7 @@ labels = {
   env         = "production"
   managed-by  = "terraform"
 }
+
+# CI/CD Configuration
+# TODO: Update this with your actual GitHub repository (e.g., "yourusername/payment-centralizer")
+github_repository = "savia-product/cuadrapay"
