@@ -16,6 +16,10 @@ on:
         required: true
       GCP_REGION:
         required: true
+      GCS_BUCKET_NAME:
+        required: false
+      GCS_ANNOTATIONS_BUCKET_NAME:
+        required: false
   workflow_dispatch:
     inputs:
       image-tag:
@@ -49,21 +53,54 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Get existing environment variables
+        id: get-env
+        run: |
+          # Get existing environment variables from the current deployment
+          EXISTING_ENV=$(gcloud run services describe payment-centralizer \
+            --region="${{ secrets.GCP_REGION }}" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --format='json' | jq -r '.spec.template.spec.containers[0].env // []' | jq -c '.')
+
+          echo "Existing environment variables: ${EXISTING_ENV}"
+
+          # Extract specific values if they exist
+          GCS_BUCKET=$(echo "${EXISTING_ENV}" | jq -r '.[] | select(.name=="GCS_BUCKET_NAME") | .value // ""')
+          GCS_ANNOTATIONS=$(echo "${EXISTING_ENV}" | jq -r '.[] | select(.name=="GCS_ANNOTATIONS_BUCKET_NAME") | .value // ""')
+
+          echo "gcs_bucket=${GCS_BUCKET}" >> $GITHUB_OUTPUT
+          echo "gcs_annotations=${GCS_ANNOTATIONS}" >> $GITHUB_OUTPUT
+
       - name: Update Cloud Run service
         id: deploy
+        env:
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME || steps.get-env.outputs.gcs_bucket }}
+          GCS_ANNOTATIONS_BUCKET_NAME: ${{ secrets.GCS_ANNOTATIONS_BUCKET_NAME || steps.get-env.outputs.gcs_annotations }}
         run: |
           IMAGE_PATH="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/payment-centralizer/app:${{ inputs.image-tag }}"
 
           echo "🚀 Deploying image: ${IMAGE_PATH}"
+          echo "📦 GCS Bucket: ${GCS_BUCKET_NAME}"
+          echo "📦 Annotations Bucket: ${GCS_ANNOTATIONS_BUCKET_NAME}"
 
+          # Update the service with explicit environment variables to ensure they're preserved
           gcloud run services update payment-centralizer \
             --region="${{ secrets.GCP_REGION }}" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
             --image="${IMAGE_PATH}" \
+            --update-env-vars="GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}" \
+            --update-env-vars="GCS_BUCKET_NAME=${GCS_BUCKET_NAME}" \
+            --update-env-vars="GCS_ANNOTATIONS_BUCKET_NAME=${GCS_ANNOTATIONS_BUCKET_NAME}" \
+            --update-env-vars="NODE_ENV=production" \
+            --update-env-vars="LOG_LEVEL=info" \
+            --update-env-vars="ENABLE_TRACING=true" \
+            --update-env-vars="ENABLE_METRICS=true" \
             --quiet
 
           # Get the service URL
           SERVICE_URL=$(gcloud run services describe payment-centralizer \
             --region="${{ secrets.GCP_REGION }}" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
             --format='value(status.url)')
 
           echo "url=${SERVICE_URL}" >> $GITHUB_OUTPUT
@@ -73,11 +110,12 @@ jobs:
       - name: Verify deployment
         run: |
           echo "⏳ Waiting for service to be ready..."
-          sleep 10
+          sleep 15
 
           # Get service account for authentication
           SA_EMAIL=$(gcloud run services describe payment-centralizer \
             --region="${{ secrets.GCP_REGION }}" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
             --format='value(spec.template.spec.serviceAccountName)')
 
           # Get an identity token
