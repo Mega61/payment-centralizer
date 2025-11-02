@@ -42,7 +42,7 @@ export class CloudStorageEventHandler {
 
       // Decode base64 Pub/Sub message
       const decodedData = Buffer.from(messageData, 'base64').toString('utf-8');
-      const eventData: GCSEventData = JSON.parse(decodedData);
+      const eventData = JSON.parse(decodedData) as GCSEventData;
 
       this.logger.info('Processing GCS object created event', {
         bucket: eventData.bucket,

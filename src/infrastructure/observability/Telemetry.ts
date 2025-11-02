@@ -26,7 +26,7 @@ export class Telemetry {
 
     const instrumentations = [
       new HttpInstrumentation({
-        requestHook: (span, request) => {
+        requestHook: (span, request): void => {
           if (request.method) {
             span.setAttribute('http.request.method', request.method);
           }

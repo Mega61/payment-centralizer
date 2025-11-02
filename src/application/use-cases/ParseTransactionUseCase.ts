@@ -110,7 +110,7 @@ export class ParseTransactionUseCase {
     }
 
     // Priority 3: Dollar sign ($)
-    const dollarPattern = /\$\s*(\d{1,3}(?:[\.,]\d{3})*(?:[\.,]\d{2})?)/g;
+    const dollarPattern = /\$\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)/g;
     const dollarMatches = text.matchAll(dollarPattern);
     for (const match of dollarMatches) {
       try {

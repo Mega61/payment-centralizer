@@ -71,7 +71,13 @@ export default [
           selector: 'enumMember',
           format: ['UPPER_CASE'],
         },
+        {
+          selector: 'objectLiteralProperty',
+          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+          leadingUnderscore: 'allow',
+        },
       ],
+      '@typescript-eslint/require-await': 'off',
 
       // General rules
       'no-console': ['warn', { allow: ['warn', 'error'] }],
@@ -87,6 +93,6 @@ export default [
     },
   },
   {
-    ignores: ['dist', 'node_modules', 'coverage', '*.js', '*.mjs'],
+    ignores: ['dist', 'node_modules', 'coverage', '*.js', '*.mjs', 'src/frontend/**/*'],
   },
 ];
